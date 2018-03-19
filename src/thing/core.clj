@@ -6,7 +6,7 @@
 (defn spaces [n] (apply str (repeat n " ")))
 
 (defn non-homogeneous-comp [a b]
-  (if (= (type a) (type b))
+  (if (and (= (type a) (type b)) (instance? Comparable a))
     (compare a b)
     (compare (str a) (str b))))
 
@@ -14,6 +14,12 @@
   (cond (map? structure) (into [] (sort non-homogeneous-comp (keys structure)))
         (set? structure) (into [] (sort non-homogeneous-comp structure))
         :else []))
+
+(defn longer-than? [s n]
+  (try
+    (nth s n)
+    true
+    (catch IndexOutOfBoundsException e false)))
 
 (defn str-vector-horizontal [v w]
   (if (< (count v) w)
@@ -43,12 +49,24 @@
         arr (map #(str-horizontal %) (flatten (into [] submap)))]
     (str name "{" (apply str arr) (if (< len w) "" "...") "} ")))
 
+(defn str-seq-horizontal [s w]
+    (let [v (take w s)
+          len (count v)]
+        (str "<" (apply str (into [] (map str-horizontal v))) (if (longer-than? s w) "..." "") ">")))
+
+(defn str-list-horizontal [s w]
+  (if (< (count s) w)
+    (str s " ")
+    (let [l (into [] (map str-horizontal (take w s)))]
+      (str "(" (apply str l) "...)"))))
 
 (defn str-horizontal [s]
   (cond (vector? s) (str-vector-horizontal s 4)
         (record? s) (str-record-horizontal s 4)
         (map? s) (str-map-horizontal s 4)
         (set? s) (str-set-horizontal s 4)
+        (list? s) (str-list-horizontal s 4)
+        (seq? s) (str-seq-horizontal s 4)
         (string? s) (str "\"" s "\" ")
         :else (str s " ")))
 
@@ -76,11 +94,10 @@
     (doseq [i (range len) :let [k (get ks i)]]
       (println (str i "." (if (zero? i) (str " " name "{") indent) (str-horizontal k) (str-horizontal (get r k)) (if (= i (dec len)) "}" ""))))))
 
-(defn longer-than? [s n]
-  (try
-    (nth s n)
-    true
-    (catch IndexOutOfBoundsException e false)))
+(defn print-list-vertical [l]
+  (let [len (count l)]
+    (doseq [i (range len)]
+      (println (str i ". " (if (zero? i) " (" "  ") (str-horizontal (nth l i)) (if (= i (dec len)) ")" ""))))))
 
 (defn print-seq-vertical [v]
   (let [s (take 15 v)
@@ -97,6 +114,7 @@
         (record? s) (print-record-vertical s)
         (map? s) (print-map-vertical s)
         (set? s) (print-set-vertical s)
+        (list? s) (print-list-vertical s)
         (seq? s) (print-seq-vertical s)
         :else (println (str-horizontal s))))
 
@@ -117,9 +135,9 @@
 
 (defn exec [command path structures]
   (let [selection (parse-int command)
-        structure (last structures)
+        structure nil
         selection-arr (make-selection-arr structure)]
-    (cond (= command "\\x") nil
+    (cond (= command "\\x") (last structures)
           (= command "\\h") (do (print-help) (list path structures))
           (= command "..") (if (empty? path) (list path structures) (list (pop path) (pop structures)))
           (and (some? selection) (coll? structure)) (list (conj path selection) (conj structures (extract structure selection selection-arr)))
