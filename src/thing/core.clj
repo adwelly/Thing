@@ -137,7 +137,7 @@
   (let [selection (parse-int command)
         structure nil
         selection-arr (make-selection-arr structure)]
-    (cond (= command "\\x") (last structures)
+    (cond (= command "\\x") nil
           (= command "\\h") (do (print-help) (list path structures))
           (= command "..") (if (empty? path) (list path structures) (list (pop path) (pop structures)))
           (and (some? selection) (coll? structure)) (list (conj path selection) (conj structures (extract structure selection selection-arr)))
@@ -155,5 +155,5 @@
            [new-path new-structures] (exec command path structures)]
        (if (some? new-path)
          (recur new-path new-structures)
-         nil)))))
+         (last structures))))))
 
