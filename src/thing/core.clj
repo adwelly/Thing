@@ -135,7 +135,7 @@
 
 (defn exec [command path structures]
   (let [selection (parse-int command)
-        structure nil
+        structure (last structures)
         selection-arr (make-selection-arr structure)]
     (cond (= command "\\x") nil
           (= command "\\h") (do (print-help) (list path structures))
